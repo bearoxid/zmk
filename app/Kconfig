@@ -219,8 +219,13 @@ config ZMK_BLE_MOUSE_REPORT_QUEUE_SIZE
     int "Max number of mouse HID reports to queue for sending over BLE"
     default 20
 
+config ZMK_BLE_MOUSE_REPORT_QUEUE_SIZE
+	int "Max number of mouse HID reports to queue for sending over BLE"
+	default 20
+
 config ZMK_BLE_CLEAR_BONDS_ON_START
-    bool "Configuration that clears all bond information from the keyboard on startup."
+	bool "Configuration that clears all bond information from the keyboard on startup."
+	default n
 
 # HID GATT notifications sent this way are *not* picked up by Linux, and possibly others.
 config BT_GATT_NOTIFY_MULTIPLE
@@ -253,7 +258,99 @@ endmenu
 # HID
 endmenu
 
-rsource "src/split/Kconfig"
+menu "Split Support"
+
+config ZMK_SPLIT
+	bool "Split keyboard support"
+
+if ZMK_SPLIT
+
+menuconfig ZMK_SPLIT_BLE
+	bool "Split keyboard support via BLE transport"
+	depends on ZMK_BLE
+	default y
+	select BT_USER_PHY_UPDATE
+
+if ZMK_SPLIT_BLE
+
+menuconfig ZMK_SPLIT_BLE_ROLE_CENTRAL
+	bool "Central"
+	select BT_CENTRAL
+	select BT_GATT_CLIENT
+	select BT_GATT_AUTO_DISCOVER_CCC
+
+if ZMK_SPLIT_BLE_ROLE_CENTRAL
+
+config ZMK_SPLIT_BLE_CENTRAL_POSITION_QUEUE_SIZE
+	int "Max number of key position state events to queue when received from peripherals"
+	default 5
+
+endif
+
+if !ZMK_SPLIT_BLE_ROLE_CENTRAL
+
+config ZMK_SPLIT_BLE_PERIPHERAL_STACK_SIZE
+	int "BLE split peripheral notify thread stack size"
+	default 512
+
+config ZMK_SPLIT_BLE_PERIPHERAL_PRIORITY
+	int "BLE split peripheral notify thread priority"
+	default 5
+
+config ZMK_SPLIT_BLE_PERIPHERAL_POSITION_QUEUE_SIZE
+	int "Max number of key position state events to queue to send to the central"
+	default 10
+
+config ZMK_USB
+	default n
+
+config BT_MAX_PAIRED
+	default 1
+
+config BT_MAX_CONN
+	default 1
+
+config BT_GAP_AUTO_UPDATE_CONN_PARAMS
+	default n
+
+#!ZMK_SPLIT_BLE_ROLE_CENTRAL
+endif
+
+#ZMK_SPLIT_BLE
+endif
+
+#ZMK_SPLIT
+endif
+
+if ZMK_BLE
+
+if ZMK_SPLIT_BLE && ZMK_SPLIT_BLE_ROLE_CENTRAL
+
+config BT_MAX_CONN
+	default 6
+
+config BT_MAX_PAIRED
+	default 6
+
+#ZMK_SPLIT_BLE && ZMK_SPLIT_BLE_ROLE_CENTRAL
+endif
+
+if !ZMK_SPLIT_BLE
+
+config BT_MAX_CONN
+	default 5
+
+config BT_MAX_PAIRED
+	default 5
+
+#!ZMK_SPLIT_BLE
+endif
+
+#ZMK_BLE
+endif
+
+#Split Support
+endmenu
 
 #Basic Keyboard Setup
 endmenu
@@ -375,8 +472,7 @@ endmenu
 
 menu "Mouse Options"
 
-config ZMK_MOUSE
-    bool "Enable ZMK mouse emulation"
+rsource "src/mouse/Kconfig"
 
 #Mouse Options
 endmenu
@@ -415,6 +511,10 @@ config ZMK_SLEEP
     imply USB
 
 if ZMK_SLEEP
+
+choice SYS_PM_POLICY
+	default PM_POLICY_APP
+endchoice
 
 config PM_DEVICE
     default y
@@ -486,6 +586,7 @@ config ZMK_MACRO_DEFAULT_TAP_MS
     int "Default time to wait (in milliseconds) between the press and release events of a tapped behavior in macros"
     default 30
 
+#Display/LED Options
 endmenu
 
 menu "Advanced"
@@ -674,6 +775,9 @@ endmenu
 #ZMK
 endmenu
 
+config HEAP_MEM_POOL_SIZE
+	default 8192
+
 config KERNEL_BIN_NAME
     default "zmk"
 
@@ -687,7 +791,8 @@ config FPU
     default CPU_HAS_FPU
 
 config ZMK_WPM
-    bool "Calculate WPM"
+	bool "Calculate WPM"
+	default n
 
 config ZMK_KEYMAP_SENSORS
     bool "Enable Keymap Sensors support"
